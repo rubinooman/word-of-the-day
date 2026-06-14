@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word of the Day</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: 2rem 1rem; }
+  .app { width: 100%; max-width: 560px; }
+  h1 { font-size: 22px; font-weight: 600; color: #111; margin-bottom: 1.5rem; }
+  .setup-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 2rem; text-align: center; }
+  .setup-card p { font-size: 15px; color: #666; margin-bottom: 1.5rem; line-height: 1.6; }
+  .age-input-row { display: flex; gap: 10px; align-items: center; justify-content: center; margin-bottom: 1.25rem; }
+  .age-input-row input { width: 90px; padding: 10px 14px; border-radius: 9px; border: 1px solid #e5e5e5; font-size: 18px; text-align: center; }
+  .age-input-row input:focus { outline: none; border-color: #2563eb; }
+  .btn-start { padding: 12px 32px; border-radius: 9px; font-size: 15px; cursor: pointer; background: #2563eb; color: #fff; border: none; font-weight: 500; }
+  .btn-start:hover { background: #1d4ed8; }
+  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 8px; }
+  .date-lbl { font-size: 13px; color: #888; }
+  .top-right { display: flex; gap: 8px; align-items: center; }
+  .streak { font-size: 13px; color: #888; background: #fff; padding: 4px 14px; border-radius: 999px; border: 1px solid #e5e5e5; }
+  .level-badge { font-size: 12px; padding: 4px 12px; border-radius: 999px; border: 1px solid; cursor: pointer; }
+  .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+  .pos-badge { font-size: 12px; background: #e8f0fe; color: #2563eb; padding: 2px 10px; border-radius: 999px; display: inline-block; margin-bottom: 0.75rem; }
+  .word-h { font-weight: 600; color: #111; margin-bottom: 4px; }
+  .phon { font-size: 14px; color: #888; margin-bottom: 1rem; }
+  .label { font-size: 11px; font-weight: 600; color: #bbb; letter-spacing: 0.07em; margin-bottom: 6px; text-transform: uppercase; }
+  .defn { color: #222; line-height: 1.6; margin-bottom: 1.25rem; }
+  .sent-box { background: #f8f9ff; border-left: 3px solid #2563eb; border-radius: 0 8px 8px 0; padding: 12px 16px; color: #333; line-height: 1.7; font-style: italic; }
+  .sent-box strong { font-style: normal; color: #2563eb; font-weight: 600; }
+  .actions { display: flex; gap: 10px; margin-top: 1.25rem; flex-wrap: wrap; }
+  .btn { flex: 1; min-width: 110px; padding: 11px; border-radius: 9px; font-size: 14px; cursor: pointer; border: 1px solid #e5e5e5; background: transparent; color: #555; }
+  .btn:hover { background: #f5f5f5; }
+  .btn-primary { background: #e8f0fe; color: #2563eb; border-color: #bfcffc; }
+  .btn-primary:hover { background: #d4e2fd; }
+  .quiz-prompt { font-size: 15px; color: #666; margin-bottom: 1rem; }
+  .quiz-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .opt { padding: 10px 12px; border-radius: 8px; font-size: 13px; cursor: pointer; background: transparent; color: #222; border: 1px solid #e5e5e5; text-align: left; line-height: 1.4; }
+  .opt:hover { background: #f5f5f5; }
+  .opt.correct { background: #dcfce7; color: #166534; border-color: #86efac; }
+  .opt.wrong { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+  .q-result { margin-top: 1rem; font-size: 14px; color: #333; display: none; }
+  .hist-title { font-size: 13px; font-weight: 600; color: #888; margin-bottom: 8px; }
+  .hist-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; margin-bottom: 6px; gap: 8px; }
+  .hist-word { font-size: 14px; font-weight: 600; color: #111; white-space: nowrap; }
+  .hist-def { font-size: 12px; color: #888; }
+  .fun-fact { font-size: 13px; color: #6b7280; background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 12px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>📖 Word of the Day</h1>
+
+  <!-- Setup screen -->
+  <div class="setup-card" id="setup-screen">
+    <p>Enter your age to get vocabulary words matched to your level!</p>
+    <div class="age-input-row">
+      <input type="number" id="age-input" min="4" max="99" placeholder="Age" />
+    </div>
+    <button class="btn-start" onclick="startApp()">Let's go →</button>
+  </div>
+
+  <!-- Main app -->
+  <div id="main-app" style="display:none">
+    <div class="top-bar">
+      <span class="date-lbl" id="date-lbl"></span>
+      <div class="top-right">
+        <span class="level-badge" id="level-badge" onclick="changeAge()" title="Change age"></span>
+        <span class="streak" id="streak-lbl">🔥 0 day streak</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="pos-badge" id="pos-badge"></span>
+      <div class="word-h" id="word-h"></div>
+      <div class="phon" id="phon"></div>
+      <div class="label">Definition</div>
+      <div class="defn" id="defn"></div>
+      <div class="label">Example</div>
+      <div class="sent-box" id="sent"></div>
+      <div class="fun-fact" id="fun-fact" style="display:none"></div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="doQuiz()">🧠 Test me</button>
+        <button class="btn" onclick="nextWord()">🔄 Next word</button>
+      </div>
+    </div>
+
+    <div class="card" id="quiz-card" style="display:none">
+      <div class="label">Quick Quiz</div>
+      <div class="quiz-prompt" id="q-prompt"></div>
+      <div class="quiz-opts" id="q-opts"></div>
+      <div class="q-result" id="q-result"></div>
+    </div>
+
+    <div id="hist-section" style="display:none">
+      <div class="hist-title">Previously learned</div>
+      <div id="hist-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Words organized by age group
+// kids: 4-10, tweens: 11-14, teens: 15-18, young adult: 19-29, adult: 30-49, advanced: 50+
+var WORD_BANKS = {
+  kids: {
+    label: "🌟 Explorer", color: "#f59e0b", bg: "#fef3c7", border: "#fcd34d",
+    fontSize: { word: "36px", defn: "17px", sent: "16px" },
+    funFacts: true,
+    words: [
+      {word:"Gigantic",phonetic:"/jih-GAN-tik/",pos:"adjective",def:"Extremely large; huge.",sentence:"The <strong>gigantic</strong> elephant was so tall it could see over the zoo wall.",wrong:["Very tiny and small","Extremely fast","Very colorful"]},
+      {word:"Curious",phonetic:"/KYOOR-ee-us/",pos:"adjective",def:"Wanting to learn or know about something.",sentence:"The <strong>curious</strong> kitten peeked inside every box it could find.",wrong:["Very sleepy","Feeling sad","Moving quickly"]},
+      {word:"Tremendous",phonetic:"/treh-MEN-dus/",pos:"adjective",def:"Very great or very large; amazing.",sentence:"She did a <strong>tremendous</strong> job on her science project and won first place!",wrong:["Very small","Quite boring","A little bit"]},
+      {word:"Peculiar",phonetic:"/pih-KYOOL-yur/",pos:"adjective",def:"Strange or unusual; different from normal.",sentence:"The dog had a <strong>peculiar</strong> habit of carrying a sock everywhere he went.",wrong:["Very common","Extremely fast","Bright and colorful"]},
+      {word:"Magnificent",phonetic:"/mag-NIF-ih-sent/",pos:"adjective",def:"Very beautiful and impressive.",sentence:"The fireworks display was absolutely <strong>magnificent</strong> — everyone cheered!",wrong:["Plain and boring","Tiny and small","Loud and scary"]},
+      {word:"Determined",phonetic:"/dih-TUR-mind/",pos:"adjective",def:"Having decided to do something no matter what.",sentence:"She was <strong>determined</strong> to learn how to ride her bike, even after falling three times.",wrong:["Ready to give up","Feeling bored","Very confused"]},
+      {word:"Enormous",phonetic:"/ih-NOR-mus/",pos:"adjective",def:"Very, very big — much larger than usual.",sentence:"The <strong>enormous</strong> pizza could feed the whole class!",wrong:["Extremely tiny","Very fast","Bright and shiny"]},
+      {word:"Clever",phonetic:"/KLEV-ur/",pos:"adjective",def:"Quick to understand and learn things; smart.",sentence:"The <strong>clever</strong> fox found a way to get the grapes after all.",wrong:["Very slow to think","Extremely clumsy","Always hungry"]},
+      {word:"Delightful",phonetic:"/dih-LITE-ful/",pos:"adjective",def:"Very pleasing and enjoyable.",sentence:"The birthday party was absolutely <strong>delightful</strong> — there were games, cake, and balloons!",wrong:["Very unpleasant","Extremely boring","A little bit scary"]},
+      {word:"Brave",phonetic:"/BRAYV/",pos:"adjective",def:"Willing to do something scary or hard without giving up.",sentence:"The <strong>brave</strong> little girl raised her hand to answer even though she wasn't sure.",wrong:["Very frightened","Always sleepy","Easily distracted"]},
+      {word:"Ancient",phonetic:"/AYN-shent/",pos:"adjective",def:"Very, very old — from a long time ago.",sentence:"The museum had an <strong>ancient</strong> dinosaur bone that was millions of years old.",wrong:["Very new and modern","Brightly colored","Very small"]},
+      {word:"Graceful",phonetic:"/GRAYS-ful/",pos:"adjective",def:"Moving in a smooth, beautiful way.",sentence:"The <strong>graceful</strong> swan glided across the lake without making a ripple.",wrong:["Very clumsy","Extremely loud","Moving very fast"]}
+    ]
+  },
+  tweens: {
+    label: "📚 Achiever", color: "#10b981", bg: "#d1fae5", border: "#6ee7b7",
+    fontSize: { word: "36px", defn: "16px", sent: "15px" },
+    funFacts: false,
+    words: [
+      {word:"Ambiguous",phonetic:"/am-BIG-yoo-us/",pos:"adjective",def:"Having more than one possible meaning; unclear.",sentence:"The teacher's <strong>ambiguous</strong> instructions left students unsure whether to work alone or in groups.",wrong:["Very clear and simple","Extremely long","Perfectly organized"]},
+      {word:"Persevere",phonetic:"/pur-suh-VEER/",pos:"verb",def:"To keep going even when things are difficult.",sentence:"She chose to <strong>persevere</strong> through the tough math unit instead of giving up.",wrong:["To quit immediately","To move very fast","To sleep a lot"]},
+      {word:"Elaborate",phonetic:"/ih-LAB-ur-it/",pos:"adjective",def:"Very detailed and complicated; carefully planned out.",sentence:"His <strong>elaborate</strong> costume for the school play took three weeks to make.",wrong:["Very simple and plain","Quite small","Very cheap"]},
+      {word:"Skeptical",phonetic:"/SKEP-tih-kul/",pos:"adjective",def:"Not easily convinced; having doubts.",sentence:"She was <strong>skeptical</strong> when her friend claimed to have seen a UFO in the backyard.",wrong:["Totally convinced","Very excited","Extremely tired"]},
+      {word:"Consequence",phonetic:"/KON-suh-kwens/",pos:"noun",def:"A result or effect of an action or decision.",sentence:"One <strong>consequence</strong> of staying up too late was that he fell asleep in class.",wrong:["A type of question","A colorful decoration","A kind of sport"]},
+      {word:"Resilient",phonetic:"/rih-ZIL-ee-ent/",pos:"adjective",def:"Able to recover quickly from difficulties; tough.",sentence:"The <strong>resilient</strong> team lost the first game but came back to win the championship.",wrong:["Easily broken down","Always tired","Very noisy"]},
+      {word:"Concise",phonetic:"/kun-SISE/",pos:"adjective",def:"Giving a lot of information clearly in a few words.",sentence:"Her <strong>concise</strong> essay made every word count without rambling.",wrong:["Very long and wordy","Extremely colorful","Loudly spoken"]},
+      {word:"Ethical",phonetic:"/ETH-ih-kul/",pos:"adjective",def:"Following rules of right and wrong; morally correct.",sentence:"It was the <strong>ethical</strong> choice to return the wallet even though no one was watching.",wrong:["Against the rules","Very expensive","Extremely slow"]},
+      {word:"Versatile",phonetic:"/VUR-suh-tul/",pos:"adjective",def:"Able to do many different things well.",sentence:"The <strong>versatile</strong> athlete played three different sports at the varsity level.",wrong:["Only good at one thing","Very slow to learn","Easily confused"]},
+      {word:"Empathy",phonetic:"/EM-puh-thee/",pos:"noun",def:"The ability to understand and share how someone else feels.",sentence:"Her <strong>empathy</strong> made her the first person her friends called when they were upset.",wrong:["A type of homework","Strong physical energy","A kind of math problem"]},
+      {word:"Inevitable",phonetic:"/in-EV-ih-tuh-bul/",pos:"adjective",def:"Certain to happen; impossible to avoid.",sentence:"With a storm that strong, power outages were <strong>inevitable</strong>.",wrong:["Easy to prevent","Very surprising","Extremely expensive"]},
+      {word:"Notorious",phonetic:"/noh-TOR-ee-us/",pos:"adjective",def:"Famous for something bad or negative.",sentence:"The <strong>notorious</strong> prankster was known throughout the whole school.",wrong:["Completely unknown","Very kind and gentle","Physically tiny"]}
+    ]
+  },
+  teens: {
+    label: "🎯 Scholar", color: "#8b5cf6", bg: "#ede9fe", border: "#c4b5fd",
+    fontSize: { word: "36px", defn: "16px", sent: "15px" },
+    funFacts: false,
+    words: [
+      {word:"Pragmatic",phonetic:"/prag-MAT-ik/",pos:"adjective",def:"Dealing with things in a practical, realistic way rather than theoretically.",sentence:"Her <strong>pragmatic</strong> approach meant she focused on what could actually be done, not what was ideal.",wrong:["Dreamy and idealistic","Overly emotional","Physically strong"]},
+      {word:"Ambivalent",phonetic:"/am-BIV-uh-lent/",pos:"adjective",def:"Having mixed feelings or conflicting ideas about something.",sentence:"She felt <strong>ambivalent</strong> about leaving her hometown for college — excited but also nervous.",wrong:["Completely certain","Very angry","Totally at peace"]},
+      {word:"Juxtapose",phonetic:"/JUK-stuh-pohz/",pos:"verb",def:"To place two things side by side to highlight their differences.",sentence:"The essay <strong>juxtaposed</strong> two characters to show how differently they handled failure.",wrong:["To copy something exactly","To destroy completely","To move somewhere slowly"]},
+      {word:"Proliferate",phonetic:"/proh-LIF-uh-rayt/",pos:"verb",def:"To increase rapidly in number; to spread widely.",sentence:"Social media apps <strong>proliferated</strong> so quickly that new ones launched nearly every month.",wrong:["To disappear slowly","To become smaller","To stay exactly the same"]},
+      {word:"Polarize",phonetic:"/POH-luh-rize/",pos:"verb",def:"To divide into two sharply contrasting groups or sets of opinions.",sentence:"The new school policy seemed to <strong>polarize</strong> students into those who loved it and those who hated it.",wrong:["To bring everyone together","To make things clear","To slow something down"]},
+      {word:"Nuanced",phonetic:"/NOO-anst/",pos:"adjective",def:"Taking into account fine points or subtle distinctions; not black and white.",sentence:"A <strong>nuanced</strong> understanding of history means recognizing that events rarely have a single cause.",wrong:["Very simple and obvious","Completely wrong","Physically heavy"]},
+      {word:"Cynical",phonetic:"/SIN-ih-kul/",pos:"adjective",def:"Believing that people are only motivated by self-interest; distrustful.",sentence:"After being let down multiple times, he grew <strong>cynical</strong> about politicians' promises.",wrong:["Full of hope and trust","Extremely energetic","Very creative"]},
+      {word:"Rhetoric",phonetic:"/RET-ur-ik/",pos:"noun",def:"Language designed to persuade or impress, sometimes without much substance.",sentence:"The candidate's speech was full of inspiring <strong>rhetoric</strong> but short on specific plans.",wrong:["A type of science test","A musical instrument","A cooking technique"]},
+      {word:"Arbitrary",phonetic:"/AR-bih-trer-ee/",pos:"adjective",def:"Based on random choice or personal whim, rather than reason or system.",sentence:"The rule felt <strong>arbitrary</strong> — no one could explain why Fridays were different from any other day.",wrong:["Carefully planned out","Very fair and equal","Based on science"]},
+      {word:"Cathartic",phonetic:"/kuh-THAR-tik/",pos:"adjective",def:"Providing emotional release or relief.",sentence:"Crying during the movie was unexpectedly <strong>cathartic</strong> — she felt lighter afterward.",wrong:["Very tiring and draining","Physically painful","Extremely confusing"]},
+      {word:"Ubiquitous",phonetic:"/yoo-BIK-wih-tus/",pos:"adjective",def:"Seeming to appear everywhere at the same time.",sentence:"Smartphones have become so <strong>ubiquitous</strong> that it's rare to see someone without one.",wrong:["Extremely rare to find","Very large in size","Recently invented"]},
+      {word:"Dogmatic",phonetic:"/dog-MAT-ik/",pos:"adjective",def:"Insisting that a set of beliefs is absolutely correct; not open to other views.",sentence:"His <strong>dogmatic</strong> approach to the debate made it impossible to have a real conversation.",wrong:["Open to all ideas","Very quiet and reserved","Physically impressive"]}
+    ]
+  },
+  young_adult: {
+    label: "💡 Thinker", color: "#2563eb", bg: "#e8f0fe", border: "#93c5fd",
+    fontSize: { word: "38px", defn: "16px", sent: "15px" },
+    funFacts: false,
+    words: [
+      {word:"Ephemeral",phonetic:"/ih-FEM-er-ul/",pos:"adjective",def:"Lasting for a very short time; transitory.",sentence:"The <strong>ephemeral</strong> nature of social media trends means what's viral today is forgotten tomorrow.",wrong:["Lasting forever and permanent","Extremely colorful and vivid","Difficult to understand"]},
+      {word:"Sanguine",phonetic:"/SANG-gwin/",pos:"adjective",def:"Optimistic, especially in a difficult situation.",sentence:"Despite the job market, she remained <strong>sanguine</strong> that the right opportunity would come.",wrong:["Deeply anxious and worried","Bitterly resentful","Physically exhausted"]},
+      {word:"Equanimity",phonetic:"/ee-kwuh-NIM-ih-tee/",pos:"noun",def:"Mental calmness and composure, especially in difficult situations.",sentence:"She handled the brutal performance review with <strong>equanimity</strong>, taking notes and asking follow-up questions.",wrong:["Intense and reckless excitement","Impressive physical endurance","Exceptional mental sharpness"]},
+      {word:"Insouciant",phonetic:"/in-SOO-see-unt/",pos:"adjective",def:"Showing a casual lack of concern; carefree.",sentence:"His <strong>insouciant</strong> attitude toward deadlines eventually caught up with him.",wrong:["Deeply focused and serious","Fearful and easily intimidated","Obsessively organized"]},
+      {word:"Cogent",phonetic:"/KOH-jent/",pos:"adjective",def:"Clear, logical, and convincing.",sentence:"She made a <strong>cogent</strong> case for the promotion that her manager couldn't argue with.",wrong:["Vague and hard to follow","Highly emotional","Delivered very quietly"]},
+      {word:"Fastidious",phonetic:"/fa-STID-ee-us/",pos:"adjective",def:"Very attentive to accuracy and detail; hard to please.",sentence:"He was <strong>fastidious</strong> about his resume — every bullet was checked five times.",wrong:["Carelessly rushed","Broadly creative","Easily satisfied"]},
+      {word:"Ebullient",phonetic:"/ih-BUL-yunt/",pos:"adjective",def:"Cheerful and full of energy; enthusiastically lively.",sentence:"Her <strong>ebullient</strong> personality made networking events feel effortless.",wrong:["Gloomy and withdrawn","Carefully measured","Physically imposing"]},
+      {word:"Laconic",phonetic:"/luh-KON-ik/",pos:"adjective",def:"Using very few words; brief and concise.",sentence:"His <strong>laconic</strong> Slack replies made it hard to gauge his actual opinion.",wrong:["Overly wordy and emotional","Extremely loud","Very slow to respond"]},
+      {word:"Tenacious",phonetic:"/tuh-NAY-shus/",pos:"adjective",def:"Holding firmly to something; very determined and persistent.",sentence:"Her <strong>tenacious</strong> networking over two years finally landed her the role she wanted.",wrong:["Easily distracted","Pleasantly passive","Financially cautious"]},
+      {word:"Circumspect",phonetic:"/SUR-kum-spekt/",pos:"adjective",def:"Careful to consider all circumstances and consequences before acting.",sentence:"She was <strong>circumspect</strong> about signing the lease, reading every clause before committing.",wrong:["Recklessly bold","Deeply emotional","Unusually generous"]},
+      {word:"Vicarious",phonetic:"/vy-KAIR-ee-us/",pos:"adjective",def:"Experienced through another person rather than directly.",sentence:"She lived <strong>vicariously</strong> through travel influencers while saving for her own trip.",wrong:["Achieved through hard work","Deeply personal","Publicly celebrated"]},
+      {word:"Propitious",phonetic:"/pruh-PISH-us/",pos:"adjective",def:"Giving or indicating a good chance of success; favorable.",sentence:"With funding secured and a strong team in place, it was a <strong>propitious</strong> moment to launch.",wrong:["Dangerous and very risky","Dull and uninspiring","Extremely crowded"]}
+    ]
+  },
+  adult: {
+    label: "🔍 Analyst", color: "#0f766e", bg: "#ccfbf1", border: "#5eead4",
+    fontSize: { word: "38px", defn: "16px", sent: "15px" },
+    funFacts: false,
+    words: [
+      {word:"Perspicacious",phonetic:"/pur-spih-KAY-shus/",pos:"adjective",def:"Having a ready insight into things; shrewd and discerning.",sentence:"The <strong>perspicacious</strong> manager spotted the cultural misalignment before it derailed the merger.",wrong:["Stubborn and inflexible","Overly generous","Physically imposing"]},
+      {word:"Obsequious",phonetic:"/ub-SEE-kwee-us/",pos:"adjective",def:"Excessively eager to please or serve others; fawning.",sentence:"The <strong>obsequious</strong> consultant agreed with every stakeholder's contradictory request.",wrong:["Boldly confrontational","Deeply creative","Unusually reserved"]},
+      {word:"Mendacious",phonetic:"/men-DAY-shus/",pos:"adjective",def:"Not telling the truth; lying.",sentence:"The audit revealed that the <strong>mendacious</strong> reports had been masking losses for two quarters.",wrong:["Scrupulously honest","Unusually quiet","Physically agile"]},
+      {word:"Truculent",phonetic:"/TRUCK-yuh-lunt/",pos:"adjective",def:"Eager or quick to argue or fight; aggressively defiant.",sentence:"The <strong>truculent</strong> board member derailed three consecutive meetings with procedural objections.",wrong:["Pleasantly agreeable","Deeply reflective","Completely exhausted"]},
+      {word:"Sycophant",phonetic:"/SIK-uh-fant/",pos:"noun",def:"A person who flatters those in power in order to gain advantage.",sentence:"Surrounded by <strong>sycophants</strong>, the CEO lost touch with the real problems in the organization.",wrong:["A trusted advisor","An outspoken critic","A casual observer"]},
+      {word:"Inimical",phonetic:"/ih-NIM-ih-kul/",pos:"adjective",def:"Tending to obstruct or harm; unfriendly; hostile.",sentence:"The regulatory climate was <strong>inimical</strong> to the kind of innovation the startup depended on.",wrong:["Extremely supportive","Beautifully designed","Casually familiar"]},
+      {word:"Profligate",phonetic:"/PROF-lih-gut/",pos:"adjective",def:"Recklessly wasteful or extravagant with money or resources.",sentence:"His <strong>profligate</strong> expense account habits finally drew scrutiny from the CFO.",wrong:["Carefully budgeted","Deeply introverted","Socially reserved"]},
+      {word:"Penurious",phonetic:"/peh-NYOOR-ee-us/",pos:"adjective",def:"Extremely poor; or excessively unwilling to spend money.",sentence:"Despite a generous salary, his <strong>penurious</strong> lifestyle left his colleagues baffled.",wrong:["Lavishly generous","Socially confident","Physically robust"]},
+      {word:"Recondite",phonetic:"/REK-un-dite/",pos:"adjective",def:"Not known by many people; obscure.",sentence:"The legal brief drew on <strong>recondite</strong> case law that even the judge had never encountered.",wrong:["Widely celebrated","Emotionally moving","Very recently discovered"]},
+      {word:"Voluble",phonetic:"/VOL-yuh-bul/",pos:"adjective",def:"Speaking or spoken incessantly and fluently.",sentence:"The <strong>voluble</strong> partner held the floor for forty minutes without anyone interjecting.",wrong:["Slow to speak","Deeply serious","Cautiously measured"]},
+      {word:"Loquacious",phonetic:"/loh-KWAY-shus/",pos:"adjective",def:"Tending to talk a great deal; talkative.",sentence:"The <strong>loquacious</strong> client needed three calls to approve what should have been an email.",wrong:["Shy and withdrawn","Quick to anger","Easily confused"]},
+      {word:"Garrulous",phonetic:"/GAIR-uh-lus/",pos:"adjective",def:"Excessively talkative, especially on trivial matters.",sentence:"The <strong>garrulous</strong> colleague turned every five-minute standup into a half-hour tangent.",wrong:["Deeply private","Quick and agile","Financially savvy"]}
+    ]
+  },
+  advanced: {
+    label: "🏛️ Wordsmith", color: "#6b21a8", bg: "#f3e8ff", border: "#d8b4fe",
+    fontSize: { word: "36px", defn: "16px", sent: "15px" },
+    funFacts: false,
+    words: [
+      {word:"Tendentious",phonetic:"/ten-DEN-shus/",pos:"adjective",def:"Promoting a particular cause or point of view; biased.",sentence:"The documentary was widely criticized as <strong>tendentious</strong>, omitting evidence that contradicted its thesis.",wrong:["Completely objective and fair","Physically demanding","Extremely well-funded"]},
+      {word:"Prolix",phonetic:"/PRO-liks/",pos:"adjective",def:"Using too many words; long and tedious in speech or writing.",sentence:"His <strong>prolix</strong> memos were notorious for burying the key point on page three.",wrong:["Beautifully concise","Deeply moving","Very fast-paced"]},
+      {word:"Anodyne",phonetic:"/AN-uh-dine/",pos:"adjective",def:"Not likely to cause offense; bland or inoffensive.",sentence:"The committee released an <strong>anodyne</strong> statement that satisfied no one and committed to nothing.",wrong:["Deeply controversial","Extremely exciting","Physically harmful"]},
+      {word:"Solipsistic",phonetic:"/sol-ip-SIS-tik/",pos:"adjective",def:"Absorbed in oneself; viewing the world only through one's own perspective.",sentence:"His <strong>solipsistic</strong> leadership style meant feedback rarely reached him in any useful form.",wrong:["Deeply empathetic","Extremely organized","Openly collaborative"]},
+      {word:"Contumacious",phonetic:"/kon-too-MAY-shus/",pos:"adjective",def:"Stubbornly resistant to authority; insubordinate.",sentence:"The <strong>contumacious</strong> witness refused to answer questions despite repeated judicial warnings.",wrong:["Highly cooperative","Carefully obedient","Extremely generous"]},
+      {word:"Pellucid",phonetic:"/puh-LOO-sid/",pos:"adjective",def:"Translucently clear; easily understood.",sentence:"Her <strong>pellucid</strong> prose made the most complex regulatory arguments accessible to any reader.",wrong:["Confusingly vague","Visually striking","Emotionally draining"]},
+      {word:"Nugatory",phonetic:"/NOO-guh-tor-ee/",pos:"adjective",def:"Of no value or importance; trifling.",sentence:"The amendment was rendered <strong>nugatory</strong> by the clause that immediately followed it.",wrong:["Extremely important","Widely celebrated","Physically large"]},
+      {word:"Fulsome",phonetic:"/FULL-sum/",pos:"adjective",def:"Complimentary or flattering to an excessive degree.",sentence:"The <strong>fulsome</strong> praise in the blurb made readers suspicious before they'd read a word.",wrong:["Harshly critical","Very brief and plain","Completely accurate"]},
+      {word:"Parlous",phonetic:"/PAR-lus/",pos:"adjective",def:"Full of danger or uncertainty; perilous.",sentence:"The company found itself in a <strong>parlous</strong> state after two key executives resigned in one week.",wrong:["Completely safe and stable","Very well-funded","Beautifully organized"]},
+      {word:"Irenic",phonetic:"/eye-REN-ik/",pos:"adjective",def:"Favoring, operating in, or tending toward peace.",sentence:"The diplomat was known for his <strong>irenic</strong> temperament, finding common ground even in fraught negotiations.",wrong:["Aggressively confrontational","Deeply indifferent","Overly bureaucratic"]},
+      {word:"Adumbrate",phonetic:"/AD-um-brayt/",pos:"verb",def:"To outline or sketch in a vague way; to foreshadow.",sentence:"The white paper merely <strong>adumbrated</strong> a framework that would take years to fully develop.",wrong:["To describe in perfect detail","To completely destroy","To publicly celebrate"]},
+      {word:"Saturnine",phonetic:"/SAT-ur-nine/",pos:"adjective",def:"Slow and gloomy in temperament; having a sardonic and morose manner.",sentence:"His <strong>saturnine</strong> expression at the retirement party unnerved guests who didn't know him well.",wrong:["Cheerful and outgoing","Extremely energetic","Beautifully composed"]}
+    ]
+  }
+};
+
+function getGroup(age) {
+  if (age <= 10) return 'kids';
+  if (age <= 14) return 'tweens';
+  if (age <= 18) return 'teens';
+  if (age <= 29) return 'young_adult';
+  if (age <= 49) return 'adult';
+  return 'advanced';
+}
+
+var SK = 'wotd_age_v1';
+var appData = { streak:0, lastDate:'', age:null, seen:{}, history:[] };
+var cur = null;
+
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function loadStorage() {
+  try { var d = localStorage.getItem(SK); if (d) appData = JSON.parse(d); } catch(e) {}
+}
+
+function saveStorage() {
+  try { localStorage.setItem(SK, JSON.stringify(appData)); } catch(e) {}
+}
+
+function startApp() {
+  var age = parseInt(document.getElementById('age-input').value);
+  if (!age || age < 4 || age > 99) { alert('Please enter a valid age between 4 and 99.'); return; }
+  appData.age = age;
+  saveStorage();
+  launchMain();
+}
+
+function changeAge() {
+  document.getElementById('setup-screen').style.display = 'block';
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('age-input').value = appData.age || '';
+}
+
+function launchMain() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  var d = new Date();
+  document.getElementById('date-lbl').textContent = d.toLocaleDateString('en-US', {weekday:'long',month:'long',day:'numeric'});
+  setStreak();
+  var group = getGroup(appData.age);
+  var bank = WORD_BANKS[group];
+  var badge = document.getElementById('level-badge');
+  badge.textContent = bank.label + '  ✏️';
+  badge.style.color = bank.color;
+  badge.style.background = bank.bg;
+  badge.style.borderColor = bank.border;
+  renderHistory();
+  showWord(pickWord());
+}
+
+function setStreak() {
+  document.getElementById('streak-lbl').textContent = '🔥 ' + (appData.streak||0) + ' day streak';
+}
+
+function pickWord() {
+  var group = getGroup(appData.age);
+  var bank = WORD_BANKS[group];
+  if (!appData.seen[group]) appData.seen[group] = [];
+  var seen = appData.seen[group];
+  var unseen = bank.words.filter(function(w){ return seen.indexOf(w.word) === -1; });
+  if (!unseen.length) { appData.seen[group] = []; unseen = bank.words; }
+  var t = today();
+  if (appData.lastDate !== t) { appData.lastDate = t; appData.streak = (appData.streak||0)+1; setStreak(); }
+  var pick = unseen[Math.floor(Math.random() * unseen.length)];
+  appData.seen[group].push(pick.word);
+  saveStorage();
+  return pick;
+}
+
+function showWord(w) {
+  cur = w;
+  var group = getGroup(appData.age);
+  var sizes = WORD_BANKS[group].fontSize;
+  document.getElementById('pos-badge').textContent = w.pos;
+  var wh = document.getElementById('word-h');
+  wh.textContent = w.word;
+  wh.style.fontSize = sizes.word;
+  var defn = document.getElementById('defn');
+  defn.textContent = w.def;
+  defn.style.fontSize = sizes.defn;
+  var sent = document.getElementById('sent');
+  sent.innerHTML = w.sentence;
+  sent.style.fontSize = sizes.sent;
+  document.getElementById('phon').textContent = w.phonetic;
+  document.getElementById('quiz-card').style.display = 'none';
+  var ff = document.getElementById('fun-fact');
+  if (WORD_BANKS[group].funFacts && w.fact) {
+    ff.textContent = '🌈 Fun fact: ' + w.fact;
+    ff.style.display = 'block';
+  } else { ff.style.display = 'none'; }
+}
+
+function nextWord() { showWord(pickWord()); }
+
+function doQuiz() {
+  if (!cur) return;
+  var qc = document.getElementById('quiz-card');
+  qc.style.display = 'block';
+  document.getElementById('q-result').style.display = 'none';
+  document.getElementById('q-prompt').textContent = 'What does "' + cur.word + '" mean?';
+  var opts = [cur.def].concat(cur.wrong).sort(function(){ return Math.random()-0.5; });
+  var container = document.getElementById('q-opts');
+  container.innerHTML = '';
+  opts.forEach(function(o) {
+    var b = document.createElement('button');
+    b.className = 'opt';
+    b.textContent = o;
+    b.onclick = function(){ check(o === cur.def, b, container, cur.def); };
+    container.appendChild(b);
+  });
+  qc.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function check(correct, btn, container, correctDef) {
+  Array.from(container.children).forEach(function(b) {
+    b.onclick = null;
+    if (b.textContent === correctDef) b.className = 'opt correct';
+    else if (b === btn && !correct) b.className = 'opt wrong';
+  });
+  var res = document.getElementById('q-result');
+  res.style.display = 'block';
+  res.textContent = correct ? '✓ Correct! Great job!' : 'Not quite — the correct answer is highlighted above.';
+  if (!appData.history.find(function(h){ return h.word === cur.word; })) {
+    appData.history.unshift({word: cur.word, def: cur.def, age: appData.age});
+    if (appData.history.length > 30) appData.history.pop();
+    saveStorage();
+    renderHistory();
+  }
+}
+
+function renderHistory() {
+  var hist = appData.history.slice(0, 5);
+  if (!hist.length) return;
+  document.getElementById('hist-section').style.display = 'block';
+  document.getElementById('hist-list').innerHTML = hist.map(function(h) {
+    return '<div class="hist-item"><span class="hist-word">' + h.word + '</span><span class="hist-def">' + h.def.substring(0,50) + '…</span></div>';
+  }).join('');
+}
+
+// Init
+loadStorage();
+if (appData.age) {
+  document.getElementById('age-input').value = appData.age;
+  launchMain();
+}
+</script>
+</body>
+</html>
